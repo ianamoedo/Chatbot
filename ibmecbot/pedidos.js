@@ -1,43 +1,34 @@
 const axios = require('axios').default;
+const { CardFactory } = require('botbuilder');
+const format = require('date-format');
 
-class Pedidos {
-    // Configuração da URL e da chave de acesso da API
-    urlApi = process.env.PEDIDOS_URL_API;
+class Pedido {
+    urlWeb = "https://projetocloud-ecommerce-api-bjb0e9dycgbkckhu.centralus-01.azurewebsites.net";
     apiKey = process.env.GATEWAY_ACCESS_KEY;
 
-    // Método para obter pedidos com base no CPF e número do cartão
-    async getPedidos(cpf, numeroCartao) {
+    async getExtratoByIdCliente(IdCliente) {
         const headers = {
             'ocp-apim-subscription-key': this.apiKey
         };
 
         try {
-            // Realiza a requisição GET para obter os pedidos
-            const response = await axios.get(`${this.urlApi}?cpf=${cpf}&numeroCartao=${numeroCartao}`, { headers: headers });
-            return response;
+            return await axios.get(`${this.urlWeb}/extratos/cliente/${IdCliente}`);
         } catch (error) {
-            // Loga o erro no console para facilitar depuração e lança o erro para ser tratado
-            console.error('Erro ao obter pedidos:', error);
+            console.error('Erro ao obter ID pelo CPF:', error);
             throw error;
         }
     }
 
-    // Método para formatar os pedidos para uma apresentação mais clara ao usuário
-    formatPedidos(response) {
-        if (!response || !response.data || response.data.length === 0) {
-            return 'Nenhum pedido encontrado para os dados fornecidos.';
-        }
-        
-        let pedidosFormatados = 'Lista de Pedidos:\n\n';
-        response.data.forEach((pedido, index) => {
-            pedidosFormatados += `Pedido ${index + 1}:\n`;
-            pedidosFormatados += `- Data do Pedido: ${pedido.dataPedido}\n`;
-            pedidosFormatados += `- Valor Total: R$ ${pedido.valorTotal}\n`;
-            pedidosFormatados += `- Status: ${pedido.status}\n\n`;
+    formatExtrato(response) {
+        let table = `| **DATA COMPRA** | **DESCRIÇÃO** | **VALOR** | **TIPO DE TRANSAÇÃO** |\n`;
+        table += `|---|---|---|\n`; // Linha separadora para tabela Markdown
+    
+        response.forEach(element => {
+            table += `| ${format("dd/MM/yyyy", new Date(element.dataTransacao))} | ${element.descricao} | R$ ${element.valor.toFixed(2)} | ${element.tipoTransacao} |\n`;
         });
-
-        return pedidosFormatados;
+    
+        return table;
     }
 }
 
-module.exports.Pedidos = Pedidos;
+module.exports.Pedido = Pedido;

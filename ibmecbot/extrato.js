@@ -20,11 +20,13 @@ class Extrato {
     }
 
     formatExtrato(response) {
-        let table = `| **DATA COMPRA** | **DESCRICAO** | **VALOR** |\n\n`;
+        let table = `| **DATA COMPRA** | **DESCRIÇÃO** | **VALOR** |\n`;
+        table += `|---|---|---|\n`; // Linha separadora para tabela Markdown
+    
         response.forEach(element => {
-            table += `| **${format("dd/MM/yyyy", new Date(element.dataTransacao))}** | **${element.comerciante}** | **R$ ${element.valor}** |\n`;
+            table += `| ${format("dd/MM/yyyy", new Date(element.dataTransacao))} | ${element.descricao} | R$ ${element.valor.toFixed(2)} |\n`;
         });
-
+    
         return table;
     }
 }

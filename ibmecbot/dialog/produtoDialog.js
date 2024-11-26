@@ -7,7 +7,6 @@ const {
     ConfirmPrompt,
     DialogSet,
     DialogTurnStatus,
-    NumberPrompt,
     TextPrompt,
     WaterfallDialog
 } = require('botbuilder-dialogs');
@@ -15,7 +14,6 @@ const { Produto } = require('../produto');
 const { Extrato } = require('../extrato');
 
 const NAME_PROMPT = 'NAME_PROMPT';
-const CARD_NUMBER_PROMPT = 'CARD_NUMBER_PROMPT';
 const CHOICE_PROMPT = 'CHOICE_PROMPT';
 const CONFIRM_PROMPT = 'CONFIRM_PROMPT';
 const MAIN_DIALOG = 'MAIN_DIALOG';
@@ -26,11 +24,10 @@ const CARD_OPTIONS = ['Consultar Pedidos', 'Extrato de Compras'];
 const CHOICES = ['Consultar Pedidos', 'Consultar Produtos', 'Extrato de Compras'];
 const PROMPT_MESSAGES = {
     selectOption: 'Por favor, selecione uma das opções disponíveis:',
-    enterCardNumber: 'Digite o número do seu cartão:',
     enterProductName: 'Digite o nome do produto que deseja consultar:',
-    enterCPF: 'Insira o seu CPF para continuar:',
+    enterId: 'Insira o ID do usuário:',
     anythingElse: 'Você deseja algo a mais?',
-    yesNoRetry: 'Responda com yes ou no.'
+    simNaoRetry: 'Responda com Sim ou Não.'
 };
 
 class ProductDialog extends ComponentDialog {
@@ -40,16 +37,14 @@ class ProductDialog extends ComponentDialog {
         this.userProfile = userState.createProperty(MAIN_DIALOG);
 
         this.addDialog(new TextPrompt(NAME_PROMPT));
-        this.addDialog(new TextPrompt(CARD_NUMBER_PROMPT));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
         this.addDialog(new ConfirmPrompt(CONFIRM_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
             this.displayMenuStep.bind(this),
             this.processInputStep.bind(this),
-            this.requestCardStep.bind(this),
             this.finalStep.bind(this),
-            this.additionalOptionsStep.bind(this), 
-            this.handleAdditionalOptions.bind(this) 
+            this.additionalOptionsStep.bind(this),
+            this.handleAdditionalOptions.bind(this)
         ]));
 
         this.initialDialogId = WATERFALL_DIALOG;
@@ -78,22 +73,13 @@ class ProductDialog extends ComponentDialog {
 
         const promptMessage = step.values.userChoice === 'Consultar Produtos'
             ? PROMPT_MESSAGES.enterProductName
-            : PROMPT_MESSAGES.enterCPF;
+            : PROMPT_MESSAGES.enterId;
 
         return await step.prompt(NAME_PROMPT, { prompt: promptMessage });
     }
 
-    async requestCardStep(step) {
-        step.values.userInput = step.result;
-
-        if (CARD_OPTIONS.includes(step.values.userChoice)) {
-            return await step.prompt(CARD_NUMBER_PROMPT, { prompt: PROMPT_MESSAGES.enterCardNumber });
-        }
-
-        return step.next();
-    }
-
     async finalStep(step) {
+        step.values.userInput = step.result;
         const userChoice = step.values.userChoice;
 
         try {
@@ -113,7 +99,7 @@ class ProductDialog extends ComponentDialog {
                     console.log('Extrato encontrado:', extratoResponse.data);
                 } catch (error) {
                     console.error('Erro ao obter o extrato:', error);
-                    await step.context.sendActivity('Não foi possível obter o extrato para o cartão fornecido. Verifique os dados e tente novamente.');
+                    await step.context.sendActivity('Não foi possível obter o extrato para o ID fornecido. Verifique os dados e tente novamente.');
                     return await step.replaceDialog(this.initialDialogId);
                 }
 
@@ -153,7 +139,7 @@ class ProductDialog extends ComponentDialog {
             return await step.replaceDialog(this.initialDialogId);
         }
 
-        return await step.next(); 
+        return await step.next();
     }
 
     async additionalOptionsStep(step) {
