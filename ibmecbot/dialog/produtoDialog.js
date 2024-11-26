@@ -21,6 +21,18 @@ const CONFIRM_PROMPT = 'CONFIRM_PROMPT';
 const MAIN_DIALOG = 'MAIN_DIALOG';
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 
+// Definição de constantes externas às funções
+const CARD_OPTIONS = ['Consultar Pedidos', 'Extrato de Compras'];
+const CHOICES = ['Consultar Pedidos', 'Consultar Produtos', 'Extrato de Compras'];
+const PROMPT_MESSAGES = {
+    selectOption: 'Por favor, selecione uma das opções disponíveis:',
+    enterCardNumber: 'Digite o número do seu cartão:',
+    enterProductName: 'Digite o nome do produto que deseja consultar:',
+    enterCPF: 'Insira o seu CPF para continuar:',
+    anythingElse: 'Você deseja algo a mais?',
+    yesNoRetry: 'Responda com yes ou no.'
+};
+
 class ProductDialog extends ComponentDialog {
     constructor(userState) {
         super('productDialog');
@@ -55,11 +67,9 @@ class ProductDialog extends ComponentDialog {
     }
 
     async displayMenuStep(step) {
-        const promptMessage = 'Por favor, selecione uma das opções disponíveis:';
-        const choices = ['Consultar Pedidos', 'Consultar Produtos', 'Extrato de Compras'];
         return await step.prompt(CHOICE_PROMPT, {
-            prompt: promptMessage,
-            choices: ChoiceFactory.toChoices(choices)
+            prompt: PROMPT_MESSAGES.selectOption,
+            choices: ChoiceFactory.toChoices(CHOICES)
         });
     }
 
@@ -67,8 +77,8 @@ class ProductDialog extends ComponentDialog {
         step.values.userChoice = step.result.value;
 
         const promptMessage = step.values.userChoice === 'Consultar Produtos'
-            ? 'Digite o nome do produto que deseja consultar:'
-            : 'Insira o seu CPF para continuar:';
+            ? PROMPT_MESSAGES.enterProductName
+            : PROMPT_MESSAGES.enterCPF;
 
         return await step.prompt(NAME_PROMPT, { prompt: promptMessage });
     }
@@ -76,9 +86,8 @@ class ProductDialog extends ComponentDialog {
     async requestCardStep(step) {
         step.values.userInput = step.result;
 
-        if (['Consultar Pedidos', 'Extrato de Compras'].includes(step.values.userChoice)) {
-            const promptMessage = 'Digite o número do seu cartão:';
-            return await step.prompt(CARD_NUMBER_PROMPT, { prompt: promptMessage });
+        if (CARD_OPTIONS.includes(step.values.userChoice)) {
+            return await step.prompt(CARD_NUMBER_PROMPT, { prompt: PROMPT_MESSAGES.enterCardNumber });
         }
 
         return step.next();
@@ -88,35 +97,19 @@ class ProductDialog extends ComponentDialog {
         const userChoice = step.values.userChoice;
 
         try {
-            if (userChoice === 'Consultar Pedidos' || userChoice === 'Extrato de Compras') {
-                const cpf = step.values.userInput;
-                const cardNumber = step.result;
+            if (CARD_OPTIONS.includes(userChoice)) {
+                const userId = step.values.userInput;
 
-                if (!cpf || !cardNumber) {
-                    await step.context.sendActivity('CPF ou número do cartão não fornecidos. Por favor, tente novamente.');
+                if (!userId) {
+                    await step.context.sendActivity('Id não fornecido. Por favor, tente novamente.');
                     return await step.replaceDialog(this.initialDialogId);
                 }
 
                 const extrato = new Extrato();
-                let idResponse;
-                try {
-                    idResponse = await extrato.getIdByCPF(cpf);
-                    console.log('Resposta da API para ID:', idResponse.data);
-                } catch (error) {
-                    console.error('Erro ao obter ID pelo CPF:', error);
-                    await step.context.sendActivity('Não foi possível encontrar o CPF fornecido. Verifique os dados e tente novamente.');
-                    return await step.replaceDialog(this.initialDialogId);
-                }
 
-                if (!idResponse || !idResponse.data || !idResponse.data.id) {
-                    await step.context.sendActivity('Nenhum ID encontrado para o CPF fornecido. Por favor, tente novamente.');
-                    return await step.replaceDialog(this.initialDialogId);
-                }
-
-                const userId = idResponse.data.id;
                 let extratoResponse;
                 try {
-                    extratoResponse = await extrato.getExtrato(userId, cardNumber);
+                    extratoResponse = await extrato.getExtratoByIdCliente(userId);
                     console.log('Extrato encontrado:', extratoResponse.data);
                 } catch (error) {
                     console.error('Erro ao obter o extrato:', error);
@@ -165,11 +158,10 @@ class ProductDialog extends ComponentDialog {
 
     async additionalOptionsStep(step) {
         return await step.prompt(CONFIRM_PROMPT, {
-            prompt: 'Você deseja algo a mais?',
-            retryPrompt: 'Responda com yes ou no.',
+            prompt: PROMPT_MESSAGES.anythingElse,
+            retryPrompt: PROMPT_MESSAGES.yesNoRetry,
         });
     }
-
 
     async handleAdditionalOptions(step) {
         if (step.result) {

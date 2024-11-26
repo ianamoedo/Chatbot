@@ -3,31 +3,18 @@ const { CardFactory } = require('botbuilder');
 const format = require('date-format');
 
 class Extrato {
-    urlApi = process.env.EXTRATO_URL_API;
+    urlWeb = "https://projetocloud-ecommerce-api-bjb0e9dycgbkckhu.centralus-01.azurewebsites.net";
     apiKey = process.env.GATEWAY_ACCESS_KEY;
 
-    async getIdByCPF(cpf) {
+    async getExtratoByIdCliente(IdCliente) {
         const headers = {
             'ocp-apim-subscription-key': this.apiKey
         };
 
         try {
-            return await axios.get(`${this.urlApi}/buscar-id-por-cpf?cpf=${cpf}`, { headers: headers });
+            return await axios.get(`${this.urlWeb}/extratos/cliente/${IdCliente}`);
         } catch (error) {
             console.error('Erro ao obter ID pelo CPF:', error);
-            throw error;
-        }
-    }
-
-    async getExtrato(idUser, numeroCartao) {
-        const headers = {
-            'ocp-apim-subscription-key': this.apiKey
-        };
-
-        try {
-            return await axios.get(`${this.urlApi}/${idUser}?numeroCartao=${numeroCartao}`, { headers: headers });
-        } catch (error) {
-            console.error('Erro ao obter extrato:', error);
             throw error;
         }
     }
